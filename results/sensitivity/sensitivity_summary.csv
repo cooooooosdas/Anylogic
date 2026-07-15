@@ -1,0 +1,5 @@
+eta_h,nRuns,lineAvailability_mean,lineAvailability_stddev,lineAvailability_ci95_low,lineAvailability_ci95_high,unplannedDowntimeCount_mean,rippleEffectMinutes_mean,maintenanceCost_mean,predictionLeadTimeHours_mean
+100,50,1.000000,0.000000,1.000000,1.000000,0.00,0.00,0.00,24.7152
+150,50,1.000000,0.000000,1.000000,1.000000,0.00,0.00,0.00,11.9570
+200,50,1.000000,0.000000,1.000000,1.000000,0.00,0.00,0.00,5.8812
+280,50,1.000000,0.000000,1.000000,1.000000,0.00,0.00,0.00,3.0332

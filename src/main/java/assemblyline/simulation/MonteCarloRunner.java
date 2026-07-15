@@ -76,12 +76,24 @@ public class MonteCarloRunner {
      * 执行批量运行并返回每次运行的原始结果。
      */
     public List<SimulationEngine.RunResult> runRaw() {
+        return runRawWithModifier(eqs -> {});
+    }
+
+    /**
+     * 执行批量运行，在每次加载设备后对设备参数应用自定义修改。
+     * 用于敏感性分析（如覆盖 Weibull η）。
+     *
+     * @param modifier 对每次运行加载的设备映射进行修改
+     */
+    public List<SimulationEngine.RunResult> runRawWithModifier(
+            java.util.function.Consumer<Map<String, EquipmentHealth>> modifier) {
         List<SimulationEngine.RunResult> all = new ArrayList<>(numRuns);
         long seed = baseSeed;
         for (int i = 0; i < numRuns; i++) {
             RandomGenerator rng = new RandomGenerator(seed);
             seed = rng.nextSeed();
             Map<String, EquipmentHealth> eqs = ConfigLoader.loadEquipmentHealths(rng);
+            modifier.accept(eqs);
             Map<String, ThreeStateModel> models = ConfigLoader.loadThreeStateModels(eqs, rng);
             SimulationEngine engine = new SimulationEngine(
                     assemblyLine, modelPool, changeoverMatrix,

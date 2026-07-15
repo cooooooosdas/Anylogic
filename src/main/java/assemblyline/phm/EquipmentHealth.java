@@ -21,6 +21,8 @@ public class EquipmentHealth {
     // Weibull 参数（从 equipment_params.json 加载）
     private final double weibullBeta;
     private final double weibullEta;
+    /** η 覆盖值，-1 表示未设置（使用 weibullEta）。用于敏感性分析。 */
+    private double etaOverride = -1;
     private double remainingLife; // 预测的剩余寿命（小时），-1 表示未计算
 
     // MTTR 参数（从 equipment_params.json 加载）
@@ -79,7 +81,11 @@ public class EquipmentHealth {
     public double getTimeSinceMaintenance() { return timeSinceMaintenance; }
     public double getRemainingLife() { return remainingLife; }
     public double getWeibullBeta() { return weibullBeta; }
-    public double getWeibullEta() { return weibullEta; }
+    /** 返回 η 值（优先使用覆盖值，用于敏感性分析）。 */
+    public double getWeibullEta() { return etaOverride > 0 ? etaOverride : weibullEta; }
+    public double getOriginalWeibullEta() { return weibullEta; }
+    public void setEtaOverride(double eta) { this.etaOverride = eta; }
+    public void clearEtaOverride() { this.etaOverride = -1; }
     public double getMttrMin() { return mttrMin; }
     public double getMttrMean() { return mttrMean; }
     public double getMttrMax() { return mttrMax; }
