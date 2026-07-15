@@ -344,7 +344,7 @@ public class SimulationEngine {
         double maintMin = eq.getTimeSinceMaintenance() * 60;
         result.plannedMaintMinutes += maintMin;
         result.maintenanceCost += maintMin / 60 * costPerMaintHour;
-        if (rippleStart > 0) {
+        if (rippleStart >= 0) {
             totalRippleMin += currentTime - rippleStart;
             rippleStart = -1;
         }
@@ -410,6 +410,10 @@ public class SimulationEngine {
                 result.maintenanceCost += mttrMin / 60.0 * costPerDowntimeMin;
                 queue.add(new SimEvent(currentTime + mttrMin, EventType.MAINT_END, eq));
             }
+            // S3 预测性维修依赖 predictRUL() 更新 remainingLife；必须在 shouldMaintain 前调用
+            if (eq.getState() == HealthState.DEGRADED || eq.getState() == HealthState.NORMAL) {
+                m.predictRUL();
+            }
             // 维护策略检查：S1 计划性 / S3 预测性
             List<String> toMaintain = maintenanceStrategy.shouldMaintain(
                     currentTime, Collections.singletonList(eq));
@@ -424,8 +428,8 @@ public class SimulationEngine {
                     predictionHits++;
                     totalLeadMin += m.predictRUL();
                 }
-            }
-            if (eq.getState() == HealthState.DEGRADED) {
+            } else if (eq.getState() == HealthState.DEGRADED) {
+                // 未触发维修，但处于劣化状态：记录 RUL 观察值（用于报告）
                 double rul = m.predictRUL();
                 if (rul > 0 && rul < 72) {
                     predictionHits++;
@@ -461,7 +465,7 @@ public class SimulationEngine {
                 ? totalLeadMin / predictionHits : 0;
         double totalPossible = simDuration * Math.max(1, assemblyLine.getAllStations().size());
         r.lineAvailability = Math.max(0, 1 - r.unplannedDowntimeMinutes / totalPossible);
-        r.plannedMaintMinutes = plannedMaintCount * 720;
+        // plannedMaintMinutes 已在 advanceEquipFor 中逐次累加，此处不再覆盖
         for (Map.Entry<String, StationState> e : stationState.entrySet()) {
             r.stationUtilization.put(e.getKey(),
                     e.getValue().busyMinutes / Math.max(1, simDuration));

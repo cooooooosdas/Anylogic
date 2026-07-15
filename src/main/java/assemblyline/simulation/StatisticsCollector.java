@@ -68,20 +68,28 @@ public class StatisticsCollector {
         // 提取关键指标
         List<Double> avail = new ArrayList<>();
         List<Double> unplanned = new ArrayList<>();
+        List<Double> unplannedMin = new ArrayList<>();
         List<Double> cycle = new ArrayList<>();
         List<Double> changeovers = new ArrayList<>();
         List<Double> wip = new ArrayList<>();
         List<Double> ripple = new ArrayList<>();
         List<Double> leadTime = new ArrayList<>();
+        List<Double> maintCost = new ArrayList<>();
+        List<Double> plannedMaint = new ArrayList<>();
+        List<Double> completed = new ArrayList<>();
 
         for (SimulationEngine.RunResult r : results) {
             avail.add(r.lineAvailability);
             unplanned.add((double) r.unplannedDowntimeCount);
+            unplannedMin.add(r.unplannedDowntimeMinutes);
             cycle.add(r.avgCycleMinutes);
             changeovers.add((double) r.changeoverEventCount);
             wip.add((double) r.wipPeak);
             ripple.add(r.rippleEffectMinutes);
             leadTime.add(r.failurePredictionLeadTime);
+            maintCost.add(r.maintenanceCost);
+            plannedMaint.add(r.plannedMaintMinutes);
+            completed.add((double) r.completedCount);
             s.samples.add(r.lineAvailability);
         }
 
@@ -95,21 +103,29 @@ public class StatisticsCollector {
 
         s.mean.put("lineAvailability", s.meanAvailability);
         s.mean.put("unplannedDowntimeCount", s.meanUnplannedDowntimeCount);
+        s.mean.put("unplannedDowntimeMinutes", mean(unplannedMin));
         s.mean.put("avgCycleMinutes", s.meanAvgCycleMinutes);
         s.mean.put("changeoverEventCount", s.meanChangeoverEvents);
         s.mean.put("wipPeak", s.meanWipPeak);
         s.mean.put("rippleEffectMinutes", s.meanRippleMinutes);
         s.mean.put("predictionLeadTimeHours", s.meanPredictionLeadTime);
+        s.mean.put("maintenanceCost", mean(maintCost));
+        s.mean.put("plannedMaintMinutes", mean(plannedMaint));
+        s.mean.put("completedCount", mean(completed));
 
         for (String k : new ArrayList<>(s.mean.keySet())) {
             List<Double> vals = switch (k) {
                 case "lineAvailability" -> avail;
                 case "unplannedDowntimeCount" -> unplanned;
+                case "unplannedDowntimeMinutes" -> unplannedMin;
                 case "avgCycleMinutes" -> cycle;
                 case "changeoverEventCount" -> changeovers;
                 case "wipPeak" -> wip;
                 case "rippleEffectMinutes" -> ripple;
                 case "predictionLeadTimeHours" -> leadTime;
+                case "maintenanceCost" -> maintCost;
+                case "plannedMaintMinutes" -> plannedMaint;
+                case "completedCount" -> completed;
                 default -> List.of(0.0);
             };
             double m = s.mean.get(k);
