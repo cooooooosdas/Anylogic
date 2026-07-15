@@ -1,0 +1,136 @@
+{
+  "description": "关键设备 PHM 参数（Weibull 分布、MTTR、传感器配置）。来源：数据说明书、NASA 公开退化数据集（经参数映射）。注：eta 已调整为适配 720h（30 天）仿真窗口。",
+  "units": {
+    "time": "小时",
+    "healthIndex": "0-100（100=全新，0=故障）",
+    "rul": "小时"
+  },
+  "equipment": [
+    {
+      "id": "TIGHTENING_MACHINE",
+      "name": "智能拧紧机",
+      "location": "CHS-06（底盘线轮胎拧紧工位）",
+      "function": "轮胎、底盘螺栓自动拧紧，扭矩实时跟踪",
+      "failureModes": ["电机过热", "扭矩传感器漂移", "机械磨损"],
+      "stationId": "CHS-06",
+      "weibull": {
+        "beta": 2.5,
+        "eta": 150,
+        "description": "形状参数β=2.5（早期故障期短，耗损期特征明显），尺度参数η=150h（30天仿真窗口内约 50% 概率触发故障）"
+      },
+      "mttr": {
+        "mean": 3,
+        "min": 2,
+        "max": 4,
+        "distribution": "Triangular"
+      },
+      "sensors": {
+        "vibration": true,
+        "temperature": true,
+        "torqueDrift": true
+      },
+      "healthIndex": {
+        "initial": 100,
+        "degradationRate": 0.018,
+        "warningThreshold": 60,
+        "criticalThreshold": 30,
+        "unit": "per hour of operation"
+      },
+      "rul": {
+        "predictionMethod": "ExponentialSmoothing",
+        "updateInterval": 1,
+        "confidenceLevel": 0.95
+      }
+    },
+    {
+      "id": "VACUUM_FILLER",
+      "name": "真空加注设备",
+      "location": "EXT-01（外饰线冷却/制动液加注）",
+      "function": "制动液、冷却液真空定量加注",
+      "failureModes": ["密封件老化", "真空泵效率下降", "管路泄漏"],
+      "stationId": "EXT-01",
+      "weibull": {
+        "beta": 2.0,
+        "eta": 200,
+        "description": "密封件老化周期较拧紧机长，η=200h，30天内约 30% 故障概率"
+      },
+      "mttr": {
+        "mean": 2.5,
+        "min": 1.5,
+        "max": 4,
+        "distribution": "Triangular"
+      },
+      "sensors": {
+        "vacuumPressure": true,
+        "temperature": true
+      },
+      "healthIndex": {
+        "initial": 100,
+        "degradationRate": 0.014,
+        "warningThreshold": 55,
+        "criticalThreshold": 25,
+        "unit": "per hour of operation"
+      },
+      "rul": {
+        "predictionMethod": "LinearDegradation",
+        "updateInterval": 1,
+        "confidenceLevel": 0.90
+      }
+    },
+    {
+      "id": "HOIST_SYSTEM",
+      "name": "自行葫芦输送系统",
+      "location": "INT-01（内饰线首站，车身/车架空中输送至首工位）",
+      "function": "车身/车架空中输送与工位间转运",
+      "failureModes": ["链条磨损", "电机故障", "定位偏差"],
+      "stationId": "INT-01",
+      "weibull": {
+        "beta": 1.8,
+        "eta": 280,
+        "description": "机械磨损主导，η=280h，30天内约 15% 故障概率"
+      },
+      "mttr": {
+        "mean": 4,
+        "min": 2,
+        "max": 6,
+        "distribution": "Triangular"
+      },
+      "sensors": {
+        "positionAccuracy": true,
+        "motorCurrent": true
+      },
+      "healthIndex": {
+        "initial": 100,
+        "degradationRate": 0.01,
+        "warningThreshold": 50,
+        "criticalThreshold": 20,
+        "unit": "per hour of operation"
+      },
+      "rul": {
+        "predictionMethod": "LinearDegradation",
+        "updateInterval": 2,
+        "confidenceLevel": 0.90
+      }
+    }
+  ],
+  "threeStateModel": {
+    "description": "设备三状态转移：正常(Normal)→劣化(Degraded)→故障(Failed)",
+    "states": ["NORMAL", "DEGRADED", "FAILED"],
+    "transitions": {
+      "NORMAL→DEGRADED": { "method": "Weibull CDF", "note": "到达 Weibull 随机寿命后转移" },
+      "DEGRADED→FAILED":  { "method": "Exponential", "mean": 50, "unit": "hours", "note": "劣化后的剩余寿命" },
+      "DEGRADED→NORMAL":  { "method": "Maintenance", "note": "维修后恢复" },
+      "FAILED→NORMAL":    { "method": "Maintenance + MTTR", "note": "修复后恢复" }
+    },
+    "healthIndexMapping": {
+      "NORMAL":   [70, 100],
+      "DEGRADED": [20, 69],
+      "FAILED":   [0, 19]
+    }
+  },
+  "sources": [
+    "一汽解放卡车厂混流装配线数据说明书",
+    "方案文档 3.3 节",
+    "方案文档 4.1 节：Weibull β=2.5, η=150h（已调整适配 720h 仿真窗口）"
+  ]
+}

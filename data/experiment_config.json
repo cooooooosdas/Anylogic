@@ -1,0 +1,71 @@
+{
+  "description": "仿真实验配置。来源：方案文档 4.3 节（蒙特卡洛 1000 次、30 天周期）与 4.1 节（行业基准数据）。",
+  "simulation": {
+    "durationDays": 30,
+    "durationMinutes": 43200,
+    "warmUpDays": 1,
+    "warmUpMinutes": 1440,
+    "timeUnit": "minutes",
+    "randomSeed": 42,
+    "warmUpNote": " warm-up 期内统计数据不纳入最终输出"
+  },
+  "monteCarlo": {
+    "numRuns": 200,
+    "confidenceLevel": 0.95,
+    "note": "大数定律保证统计稳定性。基准组与实验组使用相同随机种子序列以实现配对比较。"
+  },
+  "scenarios": {
+    "baseline": {
+      "id": "BASELINE",
+      "name": "基准：经验排产 + 计划性维修 S1",
+      "scheduling": "heuristic",
+      "maintenance": "S1_SCHEDULED",
+      "s1IntervalHours": 48,
+      "description": "按计划员经验排产，设备每 48h（2 天）保养一次（适配 30 天 / 720h 仿真窗口，约触发 2 次）"
+    },
+    "optimized": {
+      "id": "OPTIMIZED",
+      "name": "实验：优化排产 + 预测性维修 S3",
+      "scheduling": "optimized",
+      "maintenance": "S3_PREDICTIVE",
+      "description": "通过 OptQuest/启发式算法优化装配顺序，基于 RUL 预测在故障前窗口期维修"
+    }
+  },
+  "arrivalProcess": {
+    "type": "Poisson",
+    "meanInterArrivalMinutes": 40,
+    "description": "平均到达间隔 40 分钟（匹配 21 工位总加工时间），Poisson 到达模拟随机扰动"
+  },
+  "output": {
+    "directory": "results/",
+    "csvPrefix": "experiment_",
+    "metrics": [
+      "lineAvailability",
+      "unplannedDowntimeCount",
+      "unplannedDowntimeMinutes",
+      "dailyChangeoverCount",
+      "avgAssemblyCycleMinutes",
+      "wipPeak",
+      "bottleneckUtilization",
+      "maintenanceCost",
+      "rippleEffectDuration",
+      "failurePredictionLeadTime"
+    ]
+  },
+  "statisticalTests": {
+    "pairedTTest": {
+      "enabled": true,
+      "alpha": 0.05,
+      "description": "优化组 vs 基准组配对 t 检验，p<0.05 视为显著"
+    },
+    "sensitivityAnalysis": {
+      "failureRatePerturbation": 0.10,
+      "description": "设备故障率 ±10% 扰动下验证方案鲁棒性"
+    }
+  },
+  "sources": [
+    "方案文档 4.1 节：蒙特卡洛仿真方法",
+    "方案文档 4.3 节：1000 次独立运行，30 天周期",
+    "方案文档 5 节：验证逻辑"
+  ]
+}

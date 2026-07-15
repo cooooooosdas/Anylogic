@@ -1,0 +1,80 @@
+{
+  "description": "换型时间矩阵。数据来源：一汽解放数据说明书、行业公开文献。",
+  "unit": "分钟",
+  "distribution": "正态分布，表中为均值，标准差见 sigma 字段",
+  "note": "同一值切换为 0。若前后车型换型维度不同（如从颜色切到驱动），取较大者。平台切换（车型大类）覆盖所有子维度。",
+  "dimensions": {
+    "COLOR": {
+      "description": "喷涂线颜色切换，清洗管路+换漆",
+      "values": ["WHITE", "RED", "BLUE", "BLACK"],
+      "mean": 15,
+      "sigma": 3,
+      "affectsStation": ["EXT-03"],
+      "affectsBuffer": ["EXTERIOR_to_INSPECTION"]
+    },
+    "CONFIGURATION": {
+      "description": "内饰件配置切换，换零件箱+工具",
+      "values": ["STANDARD", "COMFORT", "LUXURY"],
+      "mean": 10,
+      "sigma": 2,
+      "affectsStation": ["INT-02", "INT-03", "INT-05"],
+      "affectsBuffer": ["INTERIOR_to_CHASSIS"]
+    },
+    "DRIVE": {
+      "description": "底盘驱动形式切换，换夹具+调整",
+      "values": ["FWD", "RWD", "AWD"],
+      "mean": 25,
+      "sigma": 5,
+      "affectsStation": ["CHS-02", "CHS-03", "CHS-06"],
+      "affectsBuffer": ["CHASSIS_to_EXTERIOR"]
+    },
+    "ENGINE": {
+      "description": "动力类型切换（柴油/燃气/新能源），工装调整",
+      "values": ["DIESEL", "GAS", "NEW_ENERGY"],
+      "mean": 20,
+      "sigma": 4,
+      "affectsStation": ["CHS-04", "CHS-05"],
+      "affectsBuffer": ["CHASSIS_to_EXTERIOR"]
+    },
+    "PLATFORM": {
+      "description": "车型平台切换（重/中/轻卡/客车），整线大幅调整",
+      "values": ["HEAVY", "MEDIUM", "LIGHT", "BUS"],
+      "mean": 45,
+      "sigma": 8,
+      "affectsStation": "ALL",
+      "affectsBuffer": "ALL"
+    }
+  },
+  "pairwiseTimes": {
+    "COLOR": {
+      "WHITE→RED": 16, "WHITE→BLUE": 14, "WHITE→BLACK": 18,
+      "RED→WHITE": 16, "RED→BLUE": 17, "RED→BLACK": 15,
+      "BLUE→WHITE": 14, "BLUE→RED": 17, "BLUE→BLACK": 16,
+      "BLACK→WHITE": 18, "BLACK→RED": 15, "BLACK→BLUE": 16
+    },
+    "DRIVE": {
+      "FWD→RWD": 28, "FWD→AWD": 30,
+      "RWD→FWD": 28, "RWD→AWD": 22,
+      "AWD→FWD": 30, "AWD→RWD": 22
+    },
+    "ENGINE": {
+      "DIESEL→GAS": 22, "DIESEL→NEW_ENERGY": 25,
+      "GAS→DIESEL": 22, "GAS→NEW_ENERGY": 18,
+      "NEW_ENERGY→DIESEL": 25, "NEW_ENERGY→GAS": 18
+    },
+    "PLATFORM": {
+      "HEAVY→MEDIUM": 50, "HEAVY→LIGHT": 55, "HEAVY→BUS": 60,
+      "MEDIUM→HEAVY": 50, "MEDIUM→LIGHT": 40, "MEDIUM→BUS": 50,
+      "LIGHT→HEAVY": 55, "LIGHT→MEDIUM": 40, "LIGHT→BUS": 45,
+      "BUS→HEAVY": 60, "BUS→MEDIUM": 50, "BUS→LIGHT": 45
+    }
+  },
+  "changeoverClustering": {
+    "description": "减少换型次数的启发式策略：同色/同驱动/同平台的车辆尽量相邻",
+    "priorityOrder": ["PLATFORM", "COLOR", "DRIVE", "ENGINE", "CONFIGURATION"]
+  },
+  "sources": [
+    "一汽解放卡车厂混流装配线数据说明书",
+    "行业公开数据：喷涂线颜色切换15-20min，内饰配置切换8-12min，底盘驱动切换20-30min，车型切换30-60min"
+  ]
+}

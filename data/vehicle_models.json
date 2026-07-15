@@ -1,0 +1,51 @@
+{
+  "description": "混流装配线的车型定义。来源：一汽解放公开资料、数据说明书。",
+  "note": "每种车型确定了颜色、驱动形式、发动机类型三大换型维度。同一平台内不同配置视为同车型（简化）。",
+  "categories": {
+    "HEAVY":  "重卡",
+    "MEDIUM": "中卡",
+    "LIGHT":  "轻卡",
+    "BUS":    "客车"
+  },
+  "colors": {
+    "WHITE": "白",
+    "RED":   "红",
+    "BLUE":  "蓝",
+    "BLACK": "黑"
+  },
+  "driveTypes": {
+    "FWD": "前驱",
+    "RWD": "后驱",
+    "AWD": "四驱"
+  },
+  "engineTypes": {
+    "DIESEL":    "柴油",
+    "GAS":      "燃气",
+    "NEW_ENERGY": "新能源"
+  },
+  "models": [
+    { "id": "J7",    "name": "J7",    "category": "HEAVY",  "color": "WHITE", "driveType": "RWD", "engineType": "DIESEL",    "annualVolume": 50000 },
+    { "id": "YINGTU","name": "鹰途",   "category": "HEAVY",  "color": "RED",   "driveType": "RWD", "engineType": "DIESEL",    "annualVolume": 20000 },
+    { "id": "J6V",   "name": "J6V",   "category": "HEAVY",  "color": "BLUE",  "driveType": "RWD", "engineType": "DIESEL",    "annualVolume": 30000 },
+    { "id": "JH6",   "name": "JH6",   "category": "HEAVY",  "color": "WHITE", "driveType": "RWD", "engineType": "GAS",       "annualVolume": 30000 },
+    { "id": "J6P",   "name": "J6P",   "category": "HEAVY",  "color": "BLACK", "driveType": "RWD", "engineType": "DIESEL",    "annualVolume": 40000 },
+    { "id": "HANV",  "name": "悍V",   "category": "HEAVY",  "color": "RED",   "driveType": "RWD", "engineType": "NEW_ENERGY","annualVolume": 20000 },
+
+    { "id": "J6G",   "name": "J6G",   "category": "MEDIUM", "color": "WHITE", "driveType": "RWD", "engineType": "DIESEL",    "annualVolume": 20000 },
+    { "id": "J6L",   "name": "J6L",   "category": "MEDIUM", "color": "BLUE",  "driveType": "RWD", "engineType": "DIESEL",    "annualVolume": 15000 },
+    { "id": "JK6",   "name": "JK6",   "category": "MEDIUM", "color": "WHITE", "driveType": "RWD", "engineType": "GAS",       "annualVolume": 10000 },
+    { "id": "LONGV", "name": "龙V",   "category": "MEDIUM", "color": "RED",   "driveType": "RWD", "engineType": "DIESEL",    "annualVolume": 5000  },
+
+    { "id": "LINGTU","name": "领途",   "category": "LIGHT",  "color": "WHITE", "driveType": "FWD", "engineType": "NEW_ENERGY","annualVolume": 40000 },
+    { "id": "J6F",   "name": "J6F",   "category": "LIGHT",  "color": "BLUE",  "driveType": "FWD", "engineType": "DIESEL",    "annualVolume": 50000 },
+    { "id": "HUV",   "name": "虎V",   "category": "LIGHT",  "color": "RED",   "driveType": "FWD", "engineType": "DIESEL",    "annualVolume": 30000 },
+
+    { "id": "BUS-HW","name": "公路客车","category": "BUS",   "color": "WHITE", "driveType": "RWD", "engineType": "DIESEL",    "annualVolume": 2000  },
+    { "id": "BUS-CT","name": "城市公交", "category": "BUS",   "color": "RED",   "driveType": "RWD", "engineType": "NEW_ENERGY","annualVolume": 2000  },
+    { "id": "BUS-RV","name": "房车",   "category": "BUS",    "color": "WHITE", "driveType": "RWD", "engineType": "DIESEL",    "annualVolume": 1000  }
+  ],
+  "sources": [
+    "一汽解放集团股份有限公司年度报告（公开披露）",
+    "《JIT生产模式下多品种小批量混流装配线计划排序研究》长春工业大学硕士论文2020"
+  ]
+}

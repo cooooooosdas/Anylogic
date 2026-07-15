@@ -1,0 +1,32 @@
+# 基于数字孪生的混流装配线效率优化仿真框架
+# 工程实践与创新能力大赛参赛项目
+
+# 编译输出
+build/
+target/
+*.class
+*.jar
+
+# 仿真运行结果（每次运行生成，不纳入版本控制）
+results/
+*.csv
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# 操作系统
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# teammate report drafts (本地草稿，不上传)
+docs/
+
+# 临时文件
+*.tmp
+*.log
+*.bak

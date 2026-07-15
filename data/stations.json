@@ -1,0 +1,66 @@
+{
+  "description": "工位定义与处理时间参数。数据来源：行业基准、《汽车工程》期刊、AnyLogic官方示例、一汽解放公开资料。",
+  "unit": "分钟",
+  "note": "加工时间采用三角分布，参数为 (最乐观值, 最可能值, 最悲观值)。换型点标记了需要触发换型的工位。",
+  "lines": [
+    {
+      "id": "INTERIOR",
+      "name": "内饰线",
+      "stations": [
+        { "id": "INT-01", "name": "内饰准备",        "processingTime": [1.0, 1.5, 2.0], "changeoverPoint": false },
+        { "id": "INT-02", "name": "仪表板安装",      "processingTime": [2.0, 3.0, 4.0], "changeoverPoint": true,  "changeoverType": "CONFIGURATION" },
+        { "id": "INT-03", "name": "座椅安装",        "processingTime": [2.0, 3.0, 4.5], "changeoverPoint": true,  "changeoverType": "CONFIGURATION" },
+        { "id": "INT-04", "name": "线束/线束安装",    "processingTime": [1.5, 2.5, 3.5], "changeoverPoint": false },
+        { "id": "INT-05", "name": "内饰件安装",      "processingTime": [2.0, 3.0, 4.0], "changeoverPoint": true,  "changeoverType": "CONFIGURATION" },
+        { "id": "INT-06", "name": "内饰线终检",      "processingTime": [1.0, 1.5, 2.0], "changeoverPoint": false }
+      ]
+    },
+    {
+      "id": "CHASSIS",
+      "name": "底盘线",
+      "stations": [
+        { "id": "CHS-01", "name": "车架上线",        "processingTime": [1.0, 1.5, 2.0], "changeoverPoint": false },
+        { "id": "CHS-02", "name": "前后桥安装",      "processingTime": [2.0, 3.0, 4.0], "changeoverPoint": true,  "changeoverType": "DRIVE" },
+        { "id": "CHS-03", "name": "悬架系统安装",    "processingTime": [2.0, 3.0, 4.5], "changeoverPoint": true,  "changeoverType": "DRIVE" },
+        { "id": "CHS-04", "name": "动力总成安装",    "processingTime": [3.0, 4.0, 5.5], "changeoverPoint": true,  "changeoverType": "ENGINE" },
+        { "id": "CHS-05", "name": "排气/后处理安装", "processingTime": [1.5, 2.5, 3.5], "changeoverPoint": true,  "changeoverType": "ENGINE" },
+        { "id": "CHS-06", "name": "轮胎拧紧",        "processingTime": [2.0, 3.0, 4.0], "changeoverPoint": true,  "changeoverType": "DRIVE", "hasTighteningMachine": true },
+        { "id": "CHS-07", "name": "底盘线终检",      "processingTime": [1.0, 1.5, 2.0], "changeoverPoint": false }
+      ]
+    },
+    {
+      "id": "EXTERIOR",
+      "name": "外饰线",
+      "stations": [
+        { "id": "EXT-01", "name": "油箱/冷却系统安装", "processingTime": [1.5, 2.5, 3.5], "changeoverPoint": false },
+        { "id": "EXT-02", "name": "挡风玻璃安装",    "processingTime": [2.0, 3.0, 4.0], "changeoverPoint": false },
+        { "id": "EXT-03", "name": "车门安装调整",    "processingTime": [2.5, 3.5, 5.0], "changeoverPoint": true,  "changeoverType": "COLOR" },
+        { "id": "EXT-04", "name": "车灯/外饰件安装",  "processingTime": [1.5, 2.5, 3.5], "changeoverPoint": false },
+        { "id": "EXT-05", "name": "外饰线终检",      "processingTime": [1.0, 1.5, 2.0], "changeoverPoint": false }
+      ]
+    },
+    {
+      "id": "INSPECTION",
+      "name": "检测线",
+      "stations": [
+        { "id": "INS-01", "name": "扭矩复验",        "processingTime": [1.5, 2.5, 3.5], "changeoverPoint": false },
+        { "id": "INS-02", "name": "外观/渗漏检查",  "processingTime": [2.0, 3.0, 4.0], "changeoverPoint": false },
+        { "id": "INS-03", "name": "路试性能检测",    "processingTime": [4.0, 6.0, 8.0], "changeoverPoint": false }
+      ]
+    }
+  ],
+  "buffers": {
+    "description": "各线之间缓存区容量（辆份）",
+    "capacity": {
+      "INTERIOR_to_CHASSIS": 12,
+      "CHASSIS_to_EXTERIOR": 10,
+      "EXTERIOR_to_INSPECTION": 8
+    }
+  },
+  "lineSequence": ["INTERIOR", "CHASSIS", "EXTERIOR", "INSPECTION"],
+  "sources": [
+    "行业基准数据（内饰线3.5min、底盘线4.2min）",
+    "一汽解放公开资料",
+    "AnyLogic官方汽车产线示例参数"
+  ]
+}
