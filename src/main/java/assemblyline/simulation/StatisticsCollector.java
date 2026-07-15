@@ -153,6 +153,122 @@ public class StatisticsCollector {
         return improvement;
     }
 
+    // ── 配对 t 检验 ────────────────────────────────────────────
+
+    /**
+     * 配对 t 检验结果。
+     *
+     * <p>对配对样本 d_i = baseline_i - optimized_i 计算：</p>
+     * <pre>
+     *   t = d̄ / (s_d / sqrt(n))
+     *   p = 2 * (1 - Φ(|t|))    // 正态近似，n≥30 时足够
+     * </pre>
+     *
+     * <p>Φ 采用 Abramowitz & Stegun 7.1.26 近似（误差 &lt; 7.5×10⁻⁸）。</p>
+     */
+    public static class TTestResult {
+        public final double tStatistic;
+        public final int degreesOfFreedom;
+        public final double pValue;
+        public final boolean significant;
+        public final String conclusion;
+
+        public TTestResult(double t, int df, double p, boolean significant, String conclusion) {
+            this.tStatistic = t;
+            this.degreesOfFreedom = df;
+            this.pValue = p;
+            this.significant = significant;
+            this.conclusion = conclusion;
+        }
+
+        @Override
+        public String toString() {
+            return String.format(
+                    "t(%d)=%.4f, p=%.6f, %s (α=0.05)",
+                    degreesOfFreedom, tStatistic, pValue,
+                    significant ? "显著" : "不显著");
+        }
+    }
+
+    /**
+     * 对两组蒙特卡洛运行结果的指定指标做配对 t 检验。
+     *
+     * @param baseline    基准组原始结果（须与 optimized 同长度）
+     * @param optimized   优化组原始结果
+     * @param extractor   从 RunResult 提取待检验指标的函数
+     * @param alpha       显著性水平（默认 0.05）
+     * @return TTestResult，含 t 统计量、自由度、p 值、是否显著
+     * @throws IllegalArgumentException 两组长度不一致或为空
+     */
+    public static TTestResult compareWithTTest(List<SimulationEngine.RunResult> baseline,
+                                               List<SimulationEngine.RunResult> optimized,
+                                               java.util.function.ToDoubleFunction<SimulationEngine.RunResult> extractor,
+                                               double alpha) {
+        int n = baseline.size();
+        if (n == 0 || n != optimized.size()) {
+            throw new IllegalArgumentException(
+                    "配对 t 检验要求两组非空且长度一致：baseline=" + n
+                            + ", optimized=" + optimized.size());
+        }
+
+        // 计算配对差值 d_i = baseline_i - optimized_i
+        double[] d = new double[n];
+        double sumD = 0;
+        for (int i = 0; i < n; i++) {
+            d[i] = extractor.applyAsDouble(baseline.get(i))
+                    - extractor.applyAsDouble(optimized.get(i));
+            sumD += d[i];
+        }
+        double dBar = sumD / n;
+
+        // 样本标准差 s_d
+        double sumSq = 0;
+        for (double v : d) sumSq += (v - dBar) * (v - dBar);
+        double sd = n > 1 ? Math.sqrt(sumSq / (n - 1)) : 0;
+
+        // t 统计量
+        double se = sd / Math.sqrt(n);
+        double t = se > 0 ? dBar / se : 0;
+        int df = n - 1;
+
+        // 双侧 p = 2 * (1 - Φ(|t|))  （正态近似，n≥30 时 t 分布≈正态）
+        double p = 2 * (1 - normalCdf(Math.abs(t)));
+        boolean sig = p < alpha;
+
+        String conclusion = sig
+                ? String.format("优化组显著优于基准组 (d̄=%.4f, t(%d)=%.4f, p=%.6f < %.2f)",
+                dBar, df, t, p, alpha)
+                : String.format("差异未达显著水平 (d̄=%.4f, t(%d)=%.4f, p=%.6f ≥ %.2f)",
+                dBar, df, t, p, alpha);
+
+        return new TTestResult(t, df, p, sig, conclusion);
+    }
+
+    /**
+     * 标准正态 CDF，Abramowitz & Stegun 7.1.26 近似。
+     *
+     * <p>误差 &lt; 7.5×10⁻⁸，对竞赛报告完全够用。</p>
+     */
+    private static double normalCdf(double x) {
+        if (x == 0) return 0.5;
+        boolean neg = x < 0;
+        if (neg) x = -x;
+
+        // φ(x) = exp(-x²/2) / sqrt(2π)
+        double phi = Math.exp(-x * x / 2.0) / Math.sqrt(2.0 * Math.PI);
+
+        // Horner 形式，t = 1/(1 + p·x)
+        double t = 1.0 / (1.0 + 0.2316419 * x);
+        double poly = t * (0.319381530
+                + t * (-0.356563782
+                + t * (1.781477937
+                + t * (-1.821255978
+                + t * (1.330274429)))));
+        double cdf = 1.0 - phi * poly;
+
+        return neg ? 1.0 - cdf : cdf;
+    }
+
     // ── 统计辅助 ──────────────────────────────────────────────
     private static double mean(List<Double> vals) {
         return vals.stream().mapToDouble(d -> d).average().orElse(0);

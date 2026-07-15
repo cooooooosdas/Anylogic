@@ -1,7 +1,7 @@
 # 算法逻辑文档
 
 > 面向队友与后续迭代。描述本仿真框架的核心算法、数据流与关键设计决策。
-> 版本：v1.0 — 2026-07-15（修复 S3 策略失效、predictionHits 重复计数、plannedMaintMinutes 覆盖等 4 个 bug 后）
+> 版本：v1.1 — 2026-07-16（新增 DataSource 抽象层、配对 t 检验，修复 SequenceOptimizer 2 个 bug，新增 3 个审计 bug 记录）
 
 ---
 
@@ -405,16 +405,41 @@ for each run:
 - 文献基准：SAE 论文中的装配线参数
 - 在 `docs/API.md` 中标注数据来源，满足竞赛可追溯性要求
 
-### 8.3 数据层抽象设计（建议）
+### 8.3 数据层抽象设计
 
-当前 `ConfigLoader` 已实现从 JSON 加载，便于后续替换：
-```
-ConfigLoader  ←  data/*.json（模拟） 或  EnterpriseDataSource（真实）
-                                                      │
-                                              JDBC / REST API / CSV
+```java
+// 接口
+public interface DataSource {
+    AssemblyLine loadAssemblyLine();
+    List<VehicleModel> loadVehicleModels();
+    ChangeoverMatrix loadChangeoverMatrix(RandomGenerator rng);
+    Map<String, EquipmentHealth> loadEquipmentHealths(RandomGenerator rng);
+    Map<String, ThreeStateModel> loadThreeStateModels(...);
+    ExperimentConfig loadExperimentConfig();
+}
+
+// 当前实现（模拟数据，开箱即用）
+DataSource ds = JsonDataSource.INSTANCE;
+
+// 真实数据对接实现（Phase 1）
+DataSource ds = new EnterpriseDataSource(
+        "jdbc:mysql://faw-prod-db:3306/mes", credentials);
 ```
 
-建议新增 `assemblyline.data.DataSource` 接口，现有 JSON loader 实现该接口，真实数据对接时新增 `EnterpriseDataSource` 实现，无需修改仿真核心。
+现有三个实现类：
+
+| 类 | 职责 |
+|----|------|
+| `DataSource`（interface） | 定义数据加载契约 |
+| `JsonDataSource`（enum singleton） | 默认实现，委托 ConfigLoader 静态方法，零行为变更 |
+| `EnterpriseDataSource`（stub） | 桩实现，所有方法抛 `UnsupportedOperationException`，附 TODO 清单 |
+
+**切换方式**：在 MonteCarloRunner 或实验入口处传入不同 DataSource 实例，仿真核心零改动。
+
+**遗留**：
+- SequenceOptimizer 的 `defaultBottleneckUtilization` 仍为启发式估计（原硬编码 0.85），需根据实际仿真标定
+- ChangeoverMatrix 的 color pairwise 表在 JSON 中缺失，真实数据对接时补齐
+- EnterpriseDataSource 的 JDBC 凭证应通过环境变量 / 密钥管理服务注入，禁止硬编码
 
 ---
 
@@ -426,6 +451,9 @@ ConfigLoader  ←  data/*.json（模拟） 或  EnterpriseDataSource（真实）
 | 2026-07-15 | predictionHits 重复计数 | SimulationEngine.java:424+431 | 每次成功预测被计两次，RUL 提前量被高估 | 将第二处 if 改为 else if |
 | 2026-07-15 | rippleStart > 0 漏判 t=0 的故障涟漪 | SimulationEngine.java:347 | 仿真初期（t∈[0, warmUp]）发生的故障涟漪不被计入 | 改为 `>= 0` |
 | 2026-07-15 | S3 预测性维修失效 | SimulationEngine.java:413-416 | predictRUL() 未在 shouldMaintain() 前调用，remainingLife 恒为 -1，S3 从不触发 | 在策略检查前对 DEGRADED/NORMAL 设备调用 predictRUL() |
+| 2026-07-15 | bottleneckUtilization 硬编码 0.85 | SequenceOptimizer.java:52,61,87 | 优化目标函数的利用率惩罚项为静态估计，随实际产线状态变化时偏差 | 改为可配置字段 `defaultBottleneckUtilization`（默认 0.85，保持向后兼容） |
+| 2026-07-15 | swapMove 随机性名存实亡 | SequenceOptimizer.java:108-110 | `rngLike()` 每次新建 `new Random(42)`，固定种子导致每次迭代尝试完全相同的交换对，邻域搜索退化为确定性遍历 | 改为构造时注入的单例 `java.util.Random`，种子可配置（默认 42 保持可复现） |
+| 2026-07-15 | ChangeoverMatrix color pairwise 缺失 | ChangeoverMatrix.java:89-94 | 换色换型时间忽略 pairwise 表，一律返回 colorMean，精度不足 | 数据层问题（JSON 未包含 color pairwise）。代码已预留扩展位置，真实数据对接后补齐 |
 
 ---
 

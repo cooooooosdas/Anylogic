@@ -26,15 +26,37 @@ public class SequenceOptimizer {
     private final ObjectiveFunction objective;
     private final SequenceGenerator generator;
     private final int maxIterations;
+    private final double defaultBottleneckUtilization;
+    private final java.util.Random neighborRng;
 
     public SequenceOptimizer(ChangeoverMatrix changeoverMatrix,
                              ObjectiveFunction objective,
                              SequenceGenerator generator,
                              int maxIterations) {
+        this(changeoverMatrix, objective, generator, maxIterations, 0.85, 42);
+    }
+
+    /**
+     * @param defaultBottleneckUtilization 瓶颈利用率启发式估计（0-1），
+     *                                    用于 {@link ObjectiveFunction#score} 的利用率惩罚项。
+     *                                    替代硬编码 0.85，允许根据实际仿真结果校准。
+     * @param neighborRngSeed             邻域搜索随机数种子，保证可复现。
+     *                                    传 {@code -1} 使用系统时钟熵。
+     */
+    public SequenceOptimizer(ChangeoverMatrix changeoverMatrix,
+                             ObjectiveFunction objective,
+                             SequenceGenerator generator,
+                             int maxIterations,
+                             double defaultBottleneckUtilization,
+                             long neighborRngSeed) {
         this.changeoverMatrix = changeoverMatrix;
         this.objective = objective;
         this.generator = generator;
         this.maxIterations = maxIterations;
+        this.defaultBottleneckUtilization = defaultBottleneckUtilization;
+        this.neighborRng = neighborRngSeed >= 0
+                ? new java.util.Random(neighborRngSeed)
+                : new java.util.Random();
     }
 
     /**
@@ -49,7 +71,7 @@ public class SequenceOptimizer {
                 expandPool(candidatePool, targetLength),
                 SequenceGenerator.Strategy.HEURISTIC);
 
-        double currentScore = objective.score(current, 0.85); // 初始估计利用率
+        double currentScore = objective.score(current, defaultBottleneckUtilization);
 
         List<VehicleModel> best = new ArrayList<>(current);
         double bestScore = currentScore;
@@ -58,7 +80,7 @@ public class SequenceOptimizer {
         for (int iter = 0; iter < maxIterations; iter++) {
             // 邻域操作：随机交换两个位置
             List<VehicleModel> neighbor = swapMove(current);
-            double neighborScore = objective.score(neighbor, 0.85);
+            double neighborScore = objective.score(neighbor, defaultBottleneckUtilization);
 
             if (neighborScore < currentScore) {
                 current = neighbor;
@@ -72,19 +94,18 @@ public class SequenceOptimizer {
             } else {
                 noImprove++;
                 // 早期接受（模拟退火风格）：以概率接受劣化解
-                if (noImprove > 50 && rngLike().nextDouble() < 0.05) {
+                if (noImprove > 50 && neighborRng.nextDouble() < 0.05) {
                     current = neighbor;
                     currentScore = neighborScore;
                     noImprove = 0;
                 }
             }
 
-            // 连续无改进超过阈值则重启
             if (noImprove > 200) {
                 current = generator.generate(
                         expandPool(candidatePool, targetLength),
                         SequenceGenerator.Strategy.HEURISTIC);
-                currentScore = objective.score(current, 0.85);
+                currentScore = objective.score(current, defaultBottleneckUtilization);
                 noImprove = 0;
             }
         }
@@ -96,17 +117,13 @@ public class SequenceOptimizer {
 
     private List<VehicleModel> swapMove(List<VehicleModel> seq) {
         List<VehicleModel> copy = new ArrayList<>(seq);
-        int i = rngLike().nextInt(seq.size());
-        int j = rngLike().nextInt(seq.size());
+        int i = neighborRng.nextInt(seq.size());
+        int j = neighborRng.nextInt(seq.size());
         if (i == j) return copy;
         VehicleModel tmp = copy.get(i);
         copy.set(i, copy.get(j));
         copy.set(j, tmp);
         return copy;
-    }
-
-    private java.util.Random rngLike() {
-        return new java.util.Random(42);
     }
 
     /**

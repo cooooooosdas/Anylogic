@@ -42,6 +42,8 @@ public class ComparisonExperiment {
         RandomGenerator rng = new RandomGenerator(simCfg.randomSeed());
         ChangeoverMatrix cm = ConfigLoader.loadChangeoverMatrix(rng);
 
+        Path outputDir = Path.of(cfg.output().directory());
+
         // 3. ── 基准组 ────────────────────────────────────────
         System.out.println("\n── 运行基准组（经验排产 + S1 计划性维修）──");
         ConfigLoader.ScenarioConfig baselineCfg = cfg.scenarios().get("baseline");
@@ -53,8 +55,14 @@ public class ComparisonExperiment {
                 mcCfg.numRuns(), simCfg.durationMinutes(), simCfg.warmUpMinutes(),
                 cfg.arrivalProcess().meanInterArrivalMinutes(), simCfg.randomSeed());
 
-        Path outputDir = Path.of(cfg.output().directory());
-        StatisticsCollector.Summary baseline = baselineRunner.run("baseline", outputDir);
+        List<SimulationEngine.RunResult> baselineRaw = baselineRunner.runRaw();
+        if (outputDir != null) {
+            try { StatisticsCollector.exportRunCsv(baselineRaw, "baseline", outputDir); }
+            catch (java.io.IOException e) {
+                System.err.println("[ComparisonExperiment] baseline CSV 导出失败: " + e.getMessage());
+            }
+        }
+        StatisticsCollector.Summary baseline = StatisticsCollector.summarize(baselineRaw);
 
         // 4. ── 优化组 ────────────────────────────────────────
         System.out.println("── 运行优化组（优化排产 + S3 预测性维修）──");
@@ -65,7 +73,14 @@ public class ComparisonExperiment {
                 line, models, cm, optStrategy,
                 mcCfg.numRuns(), simCfg.durationMinutes(), simCfg.warmUpMinutes(),
                 cfg.arrivalProcess().meanInterArrivalMinutes(), simCfg.randomSeed());
-        StatisticsCollector.Summary optimized = optRunner.run("optimized", outputDir);
+        List<SimulationEngine.RunResult> optimizedRaw = optRunner.runRaw();
+        if (outputDir != null) {
+            try { StatisticsCollector.exportRunCsv(optimizedRaw, "optimized", outputDir); }
+            catch (java.io.IOException e) {
+                System.err.println("[ComparisonExperiment] optimized CSV 导出失败: " + e.getMessage());
+            }
+        }
+        StatisticsCollector.Summary optimized = StatisticsCollector.summarize(optimizedRaw);
 
         // 5. ── 对比 ──────────────────────────────────────────
         System.out.println("\n══════════════════════════════════════════════");
@@ -97,6 +112,23 @@ public class ComparisonExperiment {
                 improvement.getOrDefault("predictionLeadTimeHours", 0.0), "≥24h", true);
 
         System.out.println("──────────────────────────────────────────────────────────────");
+        System.out.println(" 配对 t 检验（α = 0.05，n = " + mcCfg.numRuns() + " 对）");
+        System.out.println("──────────────────────────────────────────────────────────────");
+
+        java.util.function.ToDoubleFunction<SimulationEngine.RunResult> availExtractor =
+                r -> r.lineAvailability;
+        StatisticsCollector.TTestResult availTTest = StatisticsCollector.compareWithTTest(
+                baselineRaw, optimizedRaw, availExtractor, 0.05);
+        System.out.printf("  %-22s %s%n", "产线可用度配对 t 检验：", availTTest);
+
+        java.util.function.ToDoubleFunction<SimulationEngine.RunResult> unplannedExtractor =
+                r -> r.unplannedDowntimeCount;
+        StatisticsCollector.TTestResult unplannedTTest = StatisticsCollector.compareWithTTest(
+                baselineRaw, optimizedRaw, unplannedExtractor, 0.05);
+        System.out.printf("  %-22s %s%n", "非计划停机次数配对 t 检验：", unplannedTTest);
+
+        System.out.println("（注：t 检验以正态近似计算 p 值，详见 docs/ALGORITHM.md §6.3）");
+
         System.out.println("\n维护策略对比：");
         System.out.println("  基准：" + baselineStrategy.getName());
         System.out.println("  优化：" + optStrategy.getName());
